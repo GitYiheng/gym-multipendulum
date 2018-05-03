@@ -18,16 +18,18 @@ class MultipendulumEnv(gym.Env):
         #=======================#
         # Parameters for step() #
         #=======================#
-        self.dt = .05
+        # Simultaion time step = 1ms
+        # Learning time step = 50ms
+        self.dt = .001
         self.viewer = None
         self.ax = False
 
-        min_angle = -5
-        max_angle = 5
-        min_omega = -10
-        max_omega = 10
-        min_torque = -10
-        max_torque = 10
+        min_angle = -np.pi
+        max_angle = np.pi
+        min_omega = -10.
+        max_omega = 10.
+        min_torque = -10.
+        max_torque = 10.
         low_state = np.array([min_angle, min_angle, min_angle, min_omega, min_omega, min_omega])
         high_state = np.array([max_angle, max_angle, max_angle, max_omega, max_omega, max_omega])
         low_action = np.array([min_torque, min_torque, min_torque])
@@ -189,17 +191,29 @@ class MultipendulumEnv(gym.Env):
         self.x = zeros(6)
         self.x[:3] = deg2rad(2.0)
         # taken from male1.txt in yeadon (maybe I should use the values in Winters).
-        self.numerical_constants = array([0.611,  # lower_leg_length [m]
-            0.387,  # lower_leg_com_length [m]
-            6.769,  # lower_leg_mass [kg]
-            0.101,  # lower_leg_inertia [kg*m^2]
-            0.424,  # upper_leg_length [m]
-            0.193,  # upper_leg_com_length
-            17.01,  # upper_leg_mass [kg]
-            0.282,  # upper_leg_inertia [kg*m^2]
-            0.305,  # torso_com_length [m]
-            32.44,  # torso_mass [kg]
-            1.485,  # torso_inertia [kg*m^2]
+        # self.numerical_constants = array([0.611,  # lower_leg_length [m]
+        #     0.387,  # lower_leg_com_length [m]
+        #     6.769,  # lower_leg_mass [kg]
+        #     0.101,  # lower_leg_inertia [kg*m^2]
+        #     0.424,  # upper_leg_length [m]
+        #     0.193,  # upper_leg_com_length
+        #     17.01,  # upper_leg_mass [kg]
+        #     0.282,  # upper_leg_inertia [kg*m^2]
+        #     0.305,  # torso_com_length [m]
+        #     32.44,  # torso_mass [kg]
+        #     1.485,  # torso_inertia [kg*m^2]
+        #     9.81])  # acceleration due to gravity [m/s^2]
+        self.numerical_constants = array([0.500,  # lower_leg_length [m]
+            0.250,  # lower_leg_com_length [m]
+            0.500,  # lower_leg_mass [kg]
+            0.03125,  # lower_leg_inertia [kg*m^2]
+            0.500,  # upper_leg_length [m]
+            0.250,  # upper_leg_com_length
+            0.500,  # upper_leg_mass [kg]
+            0.03125,  # upper_leg_inertia [kg*m^2]
+            0.250,  # torso_com_length [m]
+            0.500,  # torso_mass [kg]
+            0.03125,  # torso_inertia [kg*m^2]
             9.81])  # acceleration due to gravity [m/s^2]
 
     def seed(self, seed=None):
@@ -221,12 +235,10 @@ class MultipendulumEnv(gym.Env):
     def step(self, action):
         self.x = odeint(self.right_hand_side, self.x, array([0., self.dt]),
             args=(action, self.numerical_constants))[1]
-        cost = (self.x[0]**2 + self.x[1]**2 + self.x[2]**2 + .1*self.x[3]**2 + .1*self.x[4]**2 + .1*self.x[5]**2 + .001*action[0]**2 + .001*action[1]**2 + .001*action[2]**2)
-        # print(x_temp)
         self.x[:3] = self.angle_normalize(self.x[:3])
-        # self.x[:3] = (x_temp[:3]<0)*(2*np.pi+x_temp[:3]) + np.logical_and(((x_temp[:3]>=0), (x_temp[:3]<(2*np.pi))))*x_temp[:3] + (x_temp[:3]>(2*np.pi))*(x_temp[:3]-2*np.pi)
-        # print(self.x[0:3])
-        return self.x, -cost, False, {}
+        reward = -(self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[
+            4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
+        return self.x, reward, False, {}
 
     def angle_normalize(self, angle_input):
         return (((angle_input+np.pi) % (2*np.pi)) - np.pi)
