@@ -1,0 +1,1 @@
+from gym_multipendulum.envs.multipendulum_env import MultipendulumEnv
