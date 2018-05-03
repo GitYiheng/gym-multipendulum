@@ -21,6 +21,19 @@ class MultipendulumEnv(gym.Env):
         self.dt = .05
         self.viewer = None
         self.ax = False
+
+        min_angle = -5
+        max_angle = 5
+        min_omega = -10
+        max_omega = 10
+        min_torque = -10
+        max_torque = 10
+        low_state = np.array([min_angle, min_angle, min_angle, min_omega, min_omega, min_omega])
+        high_state = np.array([max_angle, max_angle, max_angle, max_omega, max_omega, max_omega])
+        low_action = np.array([min_torque, min_torque, min_torque])
+        high_action = np.array([max_torque, max_torque, max_torque])
+        self.action_space = spaces.Box(low=low_action, high=high_action)
+        self.observation_space = spaces.Box(low=low_state, high=high_state)
         self.seed()
         #==============#
         # Orientations #
@@ -194,30 +207,31 @@ class MultipendulumEnv(gym.Env):
         return [seed]
 
     def reset(self):
-        self.x = zeros(6)
-        self.x[:3] = deg2rad(2.0)
+        # self.x = zeros(6)
+        # self.x[:3] = deg2rad(2.0)
+        self.x = np.random.randn(6)
         return self._get_obs()
 
     def _get_obs(self):
         return self.x
 
     def sample_action(self):
-        return np.random.randn(6)
+        return np.random.randn(3)
 
     def step(self, action):
         self.x = odeint(self.right_hand_side, self.x, array([0., self.dt]),
             args=(action, self.numerical_constants))[1]
-        # cost = -(self.x[0])
+        cost = (self.x[0]**2 + self.x[1]**2 + self.x[2]**2 + .1*self.x[3]**2 + .1*self.x[4]**2 + .1*self.x[5]**2 + .001*action[0]**2 + .001*action[1]**2 + .001*action[2]**2)
         # print(x_temp)
         self.x[:3] = self.angle_normalize(self.x[:3])
         # self.x[:3] = (x_temp[:3]<0)*(2*np.pi+x_temp[:3]) + np.logical_and(((x_temp[:3]>=0), (x_temp[:3]<(2*np.pi))))*x_temp[:3] + (x_temp[:3]>(2*np.pi))*(x_temp[:3]-2*np.pi)
         # print(self.x[0:3])
-        return self.x
+        return self.x, -cost, False, {}
 
     def angle_normalize(self, angle_input):
         return (((angle_input+np.pi) % (2*np.pi)) - np.pi)
 
-    def render(self):
+    def render(self, mode='human'):
         if not self.ax:
             fig, ax = plt.subplots()
             ax.set_xlim([-5, 5])
