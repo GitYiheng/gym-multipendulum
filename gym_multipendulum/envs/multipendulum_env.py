@@ -23,6 +23,8 @@ class MultipendulumEnv(gym.Env):
         self.dt = .001
         self.viewer = None
         self.ax = False
+        self.num_steps = 0 # Number of steps
+        self.done = False
 
         min_angle = -np.pi
         max_angle = np.pi
@@ -223,6 +225,8 @@ class MultipendulumEnv(gym.Env):
     def reset(self):
         # self.x = zeros(6)
         # self.x[:3] = deg2rad(2.0)
+        self.num_steps = 0
+        self.done = False
         self.x = np.random.randn(6)
         return self._get_obs()
 
@@ -233,12 +237,19 @@ class MultipendulumEnv(gym.Env):
         return np.random.randn(3)
 
     def step(self, action):
-        self.x = odeint(self.right_hand_side, self.x, array([0., self.dt]),
-            args=(action, self.numerical_constants))[1]
-        self.x[:3] = self.angle_normalize(self.x[:3])
-        reward = -(self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[
-            4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
-        return self.x, reward, False, {}
+        # Max reward: 0
+        # Min reward: -59.90881320326807
+        if self.done == True or self.num_steps > 200:
+            self.done = True
+            reward = 0.
+            return self.x, reward, self.done, {}
+        else:
+            self.num_steps += 1
+            self.x = odeint(self.right_hand_side, self.x, array([0., self.dt]),
+                args=(action, self.numerical_constants))[1]
+            self.x[:3] = self.angle_normalize(self.x[:3])
+            reward = 60. - (self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
+        return self.x, reward, self.done, {}
 
     def angle_normalize(self, angle_input):
         return (((angle_input+np.pi) % (2*np.pi)) - np.pi)
