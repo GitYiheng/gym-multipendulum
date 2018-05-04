@@ -246,14 +246,17 @@ class MultipendulumEnv(gym.Env):
     def step(self, action):
         if self.done == True or self.num_steps > self.max_steps:
             self.done = True
+            # Normalised reward
             reward = 0.
+            # Unnormalised reward
+            # reward = -60.
             return self.x, reward, self.done, {}
         else:
             # Increment the step counter
             self.num_steps += 1
             # Simulation
             self.x = odeint(self.right_hand_side, self.x, self.dt_step,
-                args=(action, self.numerical_constants))[1]
+                args=(action, self.numerical_constants))[-1]
             # Normalise joint angles to -pi ~ pi
             self.x[:3] = self.angle_normalise(self.x[:3])
             # Normalise the reward to 0. ~ 1.
@@ -261,6 +264,8 @@ class MultipendulumEnv(gym.Env):
             # Min reward: -59.90881320326807 -> 0.
             reward_unnormed = 60. - (self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
             reward = reward_unnormed / 60.
+            # Unnormalized reward
+            # reward = - (self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
         return self.x, reward, self.done, {}
 
     def angle_normalise(self, angle_input):
