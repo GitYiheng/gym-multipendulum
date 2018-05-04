@@ -18,14 +18,19 @@ class MultipendulumEnv(gym.Env):
         #=======================#
         # Parameters for step() #
         #=======================#
-        # Simultaion time step = 1ms
-        # Learning time step = 50ms
-        self.dt = .001
-        self.viewer = None
-        self.ax = False
+        # Maximum number of steps before episode termination
+        self.max_steps = 200
+        # For ODE integration
+        self.dt = .001 # Simultaion time step = 1ms
+        self.sim_steps = 51 # Number of simulation steps in 1 learning step
+        self.dt_step = np.linspace(0., self.dt*self.sim_steps, num=self.sim_steps) # Learning time step = 50ms
+        # Termination conditions for simulation
         self.num_steps = 0 # Number of steps
         self.done = False
-
+        # For visualisation
+        self.viewer = None
+        self.ax = False
+        # Constraints for observation
         min_angle = -np.pi
         max_angle = np.pi
         min_omega = -10.
@@ -38,6 +43,7 @@ class MultipendulumEnv(gym.Env):
         high_action = np.array([max_torque, max_torque, max_torque])
         self.action_space = spaces.Box(low=low_action, high=high_action)
         self.observation_space = spaces.Box(low=low_state, high=high_state)
+        # Seed...
         self.seed()
         #==============#
         # Orientations #
@@ -228,6 +234,7 @@ class MultipendulumEnv(gym.Env):
         self.num_steps = 0
         self.done = False
         self.x = np.random.randn(6)
+        self.x[:3] += np.array([np.pi, np.pi, np.pi])
         return self._get_obs()
 
     def _get_obs(self):
@@ -237,21 +244,26 @@ class MultipendulumEnv(gym.Env):
         return np.random.randn(3)
 
     def step(self, action):
-        # Max reward: 0
-        # Min reward: -59.90881320326807
-        if self.done == True or self.num_steps > 200:
+        if self.done == True or self.num_steps > self.max_steps:
             self.done = True
             reward = 0.
             return self.x, reward, self.done, {}
         else:
+            # Increment the step counter
             self.num_steps += 1
-            self.x = odeint(self.right_hand_side, self.x, array([0., self.dt]),
+            # Simulation
+            self.x = odeint(self.right_hand_side, self.x, self.dt_step,
                 args=(action, self.numerical_constants))[1]
-            self.x[:3] = self.angle_normalize(self.x[:3])
-            reward = 60. - (self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
+            # Normalise joint angles to -pi ~ pi
+            self.x[:3] = self.angle_normalise(self.x[:3])
+            # Normalise the reward to 0. ~ 1.
+            # Max reward: 0. -> 1.
+            # Min reward: -59.90881320326807 -> 0.
+            reward_unnormed = 60. - (self.x[0] ** 2 + self.x[1] ** 2 + self.x[2] ** 2 + .1 * self.x[3] ** 2 + .1 * self.x[4] ** 2 + .1 * self.x[5] ** 2 + .001 * action[0] ** 2 + .001 * action[1] ** 2 + .001 * action[2] ** 2)
+            reward = reward_unnormed / 60.
         return self.x, reward, self.done, {}
 
-    def angle_normalize(self, angle_input):
+    def angle_normalise(self, angle_input):
         return (((angle_input+np.pi) % (2*np.pi)) - np.pi)
 
     def render(self, mode='human'):
