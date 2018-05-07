@@ -50,34 +50,34 @@ class MultipendulumEnv(gym.Env):
         #==============#
         self.theta1, self.theta2, self.theta3 = dynamicsymbols('theta1, theta2, theta3')
         self.inertial_frame = ReferenceFrame('I')
-        self.lower_leg_frame = ReferenceFrame('L')
-        self.lower_leg_frame.orient(self.inertial_frame, 'Axis', (self.theta1, self.inertial_frame.z))
-        self.upper_leg_frame = ReferenceFrame('U')
-        self.upper_leg_frame.orient(self.lower_leg_frame, 'Axis', (self.theta2, self.lower_leg_frame.z))
-        self.torso_frame = ReferenceFrame('T')
-        self.torso_frame.orient(self.upper_leg_frame, 'Axis', (self.theta3, self.upper_leg_frame.z))
+        self.link1_frame = ReferenceFrame('L')
+        self.link1_frame.orient(self.inertial_frame, 'Axis', (self.theta1, self.inertial_frame.z))
+        self.link2_frame = ReferenceFrame('U')
+        self.link2_frame.orient(self.link1_frame, 'Axis', (self.theta2, self.link1_frame.z))
+        self.link3_frame = ReferenceFrame('T')
+        self.link3_frame.orient(self.link2_frame, 'Axis', (self.theta3, self.link2_frame.z))
         #=================#
         # Point Locations #
         #=================#
         #--------#
         # Joints #
         #--------#
-        self.lower_leg_length, self.upper_leg_length = symbols('l_L, l_U')
-        self.ankle = Point('A')
-        self.knee = Point('K')
-        self.knee.set_pos(self.ankle, self.lower_leg_length * self.lower_leg_frame.y)
-        self.hip = Point('H')
-        self.hip.set_pos(self.knee, self.upper_leg_length * self.upper_leg_frame.y)
+        self.link1_length, self.link2_length = symbols('l_L, l_U')
+        self.link1_joint = Point('A')
+        self.link2_joint = Point('K')
+        self.link2_joint.set_pos(self.link1_joint, self.link1_length * self.link1_frame.y)
+        self.link3_joint = Point('H')
+        self.link3_joint.set_pos(self.link2_joint, self.link2_length * self.link2_frame.y)
         #--------------------------#
-        # Center of mass locations #
+        # Centre of mass locations #
         #--------------------------#
-        self.lower_leg_com_length, self.upper_leg_com_length, self.torso_com_length = symbols('d_L, d_U, d_T')
-        self.lower_leg_mass_center = Point('L_o')
-        self.lower_leg_mass_center.set_pos(self.ankle, self.lower_leg_com_length * self.lower_leg_frame.y)
-        self.upper_leg_mass_center = Point('U_o')
-        self.upper_leg_mass_center.set_pos(self.knee, self.upper_leg_com_length * self.upper_leg_frame.y)
-        self.torso_mass_center = Point('T_o')
-        self.torso_mass_center.set_pos(self.hip, self.torso_com_length * self.torso_frame.y)
+        self.link1_com_length, self.link2_com_length, self.link3_com_length = symbols('d_L, d_U, d_T')
+        self.link1_mass_centre = Point('L_o')
+        self.link1_mass_centre.set_pos(self.link1_joint, self.link1_com_length * self.link1_frame.y)
+        self.link2_mass_centre = Point('U_o')
+        self.link2_mass_centre.set_pos(self.link2_joint, self.link2_com_length * self.link2_frame.y)
+        self.link3_mass_centre = Point('T_o')
+        self.link3_mass_centre.set_pos(self.link3_joint, self.link3_com_length * self.link3_frame.y)
         #===========================================#
         # Define kinematical differential equations #
         #===========================================#
@@ -89,61 +89,61 @@ class MultipendulumEnv(gym.Env):
         #====================#
         # Angular Velocities #
         #====================#
-        self.lower_leg_frame.set_ang_vel(self.inertial_frame, self.omega1 * self.inertial_frame.z)
-        self.upper_leg_frame.set_ang_vel(self.lower_leg_frame, self.omega2 * self.lower_leg_frame.z)
-        self.torso_frame.set_ang_vel(self.upper_leg_frame, self.omega3 * self.upper_leg_frame.z)
+        self.link1_frame.set_ang_vel(self.inertial_frame, self.omega1 * self.inertial_frame.z)
+        self.link2_frame.set_ang_vel(self.link1_frame, self.omega2 * self.link1_frame.z)
+        self.link3_frame.set_ang_vel(self.link2_frame, self.omega3 * self.link2_frame.z)
         #===================#
         # Linear Velocities #
         #===================#
-        self.ankle.set_vel(self.inertial_frame, 0)
-        self.lower_leg_mass_center.v2pt_theory(self.ankle, self.inertial_frame, self.lower_leg_frame)
-        self.knee.v2pt_theory(self.ankle, self.inertial_frame, self.lower_leg_frame)
-        self.upper_leg_mass_center.v2pt_theory(self.knee, self.inertial_frame, self.upper_leg_frame)
-        self.hip.v2pt_theory(self.knee, self.inertial_frame, self.upper_leg_frame)
-        self.torso_mass_center.v2pt_theory(self.hip, self.inertial_frame, self.torso_frame)
+        self.link1_joint.set_vel(self.inertial_frame, 0)
+        self.link1_mass_centre.v2pt_theory(self.link1_joint, self.inertial_frame, self.link1_frame)
+        self.link2_joint.v2pt_theory(self.link1_joint, self.inertial_frame, self.link1_frame)
+        self.link2_mass_centre.v2pt_theory(self.link2_joint, self.inertial_frame, self.link2_frame)
+        self.link3_joint.v2pt_theory(self.link2_joint, self.inertial_frame, self.link2_frame)
+        self.link3_mass_centre.v2pt_theory(self.link3_joint, self.inertial_frame, self.link3_frame)
         #======#
         # Mass #
         #======#
-        self.lower_leg_mass, self.upper_leg_mass, self.torso_mass = symbols('m_L, m_U, m_T')
+        self.link1_mass, self.link2_mass, self.link3_mass = symbols('m_L, m_U, m_T')
         #=========#
         # Inertia #
         #=========#
-        self.lower_leg_inertia, self.upper_leg_inertia, self.torso_inertia = symbols('I_Lz, I_Uz, I_Tz')
-        self.lower_leg_inertia_dyadic = inertia(self.lower_leg_frame, 0, 0, self.lower_leg_inertia)
-        self.lower_leg_central_inertia = (self.lower_leg_inertia_dyadic, self.lower_leg_mass_center)
-        self.upper_leg_inertia_dyadic = inertia(self.upper_leg_frame, 0, 0, self.upper_leg_inertia)
-        self.upper_leg_central_inertia = (self.upper_leg_inertia_dyadic, self.upper_leg_mass_center)
-        self.torso_inertia_dyadic = inertia(self.torso_frame, 0, 0, self.torso_inertia)
-        self.torso_central_inertia = (self.torso_inertia_dyadic, self.torso_mass_center)
+        self.link1_inertia, self.link2_inertia, self.link3_inertia = symbols('I_Lz, I_Uz, I_Tz')
+        self.link1_inertia_dyadic = inertia(self.link1_frame, 0, 0, self.link1_inertia)
+        self.link1_central_inertia = (self.link1_inertia_dyadic, self.link1_mass_centre)
+        self.link2_inertia_dyadic = inertia(self.link2_frame, 0, 0, self.link2_inertia)
+        self.link2_central_inertia = (self.link2_inertia_dyadic, self.link2_mass_centre)
+        self.link3_inertia_dyadic = inertia(self.link3_frame, 0, 0, self.link3_inertia)
+        self.link3_central_inertia = (self.link3_inertia_dyadic, self.link3_mass_centre)
         #==============#
         # Rigid Bodies #
         #==============#
-        self.lower_leg = RigidBody('Lower Leg', self.lower_leg_mass_center, self.lower_leg_frame,
-            self.lower_leg_mass, self.lower_leg_central_inertia)
-        self.upper_leg = RigidBody('Upper Leg', self.upper_leg_mass_center, self.upper_leg_frame,
-            self.upper_leg_mass, self.upper_leg_central_inertia)
-        self.torso = RigidBody('Torso', self.torso_mass_center, self.torso_frame,
-            self.torso_mass, self.torso_central_inertia)
+        self.link1 = RigidBody('link1', self.link1_mass_centre, self.link1_frame,
+            self.link1_mass, self.link1_central_inertia)
+        self.link2 = RigidBody('link2', self.link2_mass_centre, self.link2_frame,
+            self.link2_mass, self.link2_central_inertia)
+        self.link3 = RigidBody('link3', self.link3_mass_centre, self.link3_frame,
+            self.link3_mass, self.link3_central_inertia)
         #=========#
         # Gravity #
         #=========#
         self.g = symbols('g')
-        self.lower_leg_grav_force = (self.lower_leg_mass_center,
-            -self.lower_leg_mass * self.g * self.inertial_frame.y)
-        self.upper_leg_grav_force = (self.upper_leg_mass_center,
-            -self.upper_leg_mass * self.g * self.inertial_frame.y)
-        self.torso_grav_force = (self.torso_mass_center, -self.torso_mass * self.g * self.inertial_frame.y)
+        self.link1_grav_force = (self.link1_mass_centre,
+            -self.link1_mass * self.g * self.inertial_frame.y)
+        self.link2_grav_force = (self.link2_mass_centre,
+            -self.link2_mass * self.g * self.inertial_frame.y)
+        self.link3_grav_force = (self.link3_mass_centre, -self.link3_mass * self.g * self.inertial_frame.y)
         #===============#
         # Joint Torques #
         #===============#
-        self.ankle_torque, self.knee_torque, self.hip_torque = dynamicsymbols('T_a, T_k, T_h')
-        self.lower_leg_torque = (self.lower_leg_frame,
-            self.ankle_torque * self.inertial_frame.z - self.knee_torque *
+        self.link1_joint_torque, self.link2_joint_torque, self.link3_joint_torque = dynamicsymbols('T_a, T_k, T_h')
+        self.link1_torque = (self.link1_frame,
+            self.link1_joint_torque * self.inertial_frame.z - self.link2_joint_torque *
             self.inertial_frame.z)
-        self.upper_leg_torque = (self.upper_leg_frame,
-            self.knee_torque * self.inertial_frame.z - self.hip_torque *
+        self.link2_torque = (self.link2_frame,
+            self.link2_joint_torque * self.inertial_frame.z - self.link3_joint_torque *
             self.inertial_frame.z)
-        self.torso_torque = (self.torso_frame, self.hip_torque * self.inertial_frame.z)
+        self.link3_torque = (self.link3_frame, self.link3_joint_torque * self.inertial_frame.z)
         #=====================#
         # Equations of Motion #
         #=====================#
@@ -153,13 +153,13 @@ class MultipendulumEnv(gym.Env):
             self.coordinates,
             self.speeds,
             self.kinematical_differential_equations)
-        self.loads = [self.lower_leg_grav_force,
-            self.upper_leg_grav_force,
-            self.torso_grav_force,
-            self.lower_leg_torque,
-            self.upper_leg_torque,
-            self.torso_torque]
-        self.bodies = [self.lower_leg, self.upper_leg, self.torso]
+        self.loads = [self.link1_grav_force,
+            self.link2_grav_force,
+            self.link3_grav_force,
+            self.link1_torque,
+            self.link2_torque,
+            self.link3_torque]
+        self.bodies = [self.link1, self.link2, self.link3]
         self.fr, self.frstar = self.kane.kanes_equations(self.bodies, self.loads)
         self.mass_matrix = self.kane.mass_matrix_full
         self.forcing_vector = self.kane.forcing_full
@@ -169,24 +169,24 @@ class MultipendulumEnv(gym.Env):
         #-----------#
         # Constants #
         #-----------#
-        self.constants = [self.lower_leg_length,
-            self.lower_leg_com_length,
-            self.lower_leg_mass,
-            self.lower_leg_inertia,
-            self.upper_leg_length,
-            self.upper_leg_com_length,
-            self.upper_leg_mass,
-            self.upper_leg_inertia,
-            self.torso_com_length,
-            self.torso_mass,
-            self.torso_inertia,
+        self.constants = [self.link1_length,
+            self.link1_com_length,
+            self.link1_mass,
+            self.link1_inertia,
+            self.link2_length,
+            self.link2_com_length,
+            self.link2_mass,
+            self.link2_inertia,
+            self.link3_com_length,
+            self.link3_mass,
+            self.link3_inertia,
             self.g]
         #--------------#
         # Time Varying #
         #--------------#
         self.coordinates = [self.theta1, self.theta2, self.theta3]
         self.speeds = [self.omega1, self.omega2, self.omega3]
-        self.specified = [self.ankle_torque, self.knee_torque, self.hip_torque]
+        self.specified = [self.link1_joint_torque, self.link2_joint_torque, self.link3_joint_torque]
         #=======================#
         # Generate RHS Function #
         #=======================#
@@ -199,29 +199,29 @@ class MultipendulumEnv(gym.Env):
         self.x = zeros(6)
         self.x[:3] = deg2rad(2.0)
         # taken from male1.txt in yeadon (maybe I should use the values in Winters).
-        # self.numerical_constants = array([0.611,  # lower_leg_length [m]
-        #     0.387,  # lower_leg_com_length [m]
-        #     6.769,  # lower_leg_mass [kg]
-        #     0.101,  # lower_leg_inertia [kg*m^2]
-        #     0.424,  # upper_leg_length [m]
-        #     0.193,  # upper_leg_com_length
-        #     17.01,  # upper_leg_mass [kg]
-        #     0.282,  # upper_leg_inertia [kg*m^2]
-        #     0.305,  # torso_com_length [m]
-        #     32.44,  # torso_mass [kg]
-        #     1.485,  # torso_inertia [kg*m^2]
+        # self.numerical_constants = array([0.611,  # link1_length [m]
+        #     0.387,  # link1_com_length [m]
+        #     6.769,  # link1_mass [kg]
+        #     0.101,  # link1_inertia [kg*m^2]
+        #     0.424,  # link2_length [m]
+        #     0.193,  # link2_com_length
+        #     17.01,  # link2_mass [kg]
+        #     0.282,  # link2_inertia [kg*m^2]
+        #     0.305,  # link3_com_length [m]
+        #     32.44,  # link3_mass [kg]
+        #     1.485,  # link3_inertia [kg*m^2]
         #     9.81])  # acceleration due to gravity [m/s^2]
-        self.numerical_constants = array([0.500,  # lower_leg_length [m]
-            0.250,  # lower_leg_com_length [m]
-            0.500,  # lower_leg_mass [kg]
-            0.03125,  # lower_leg_inertia [kg*m^2]
-            0.500,  # upper_leg_length [m]
-            0.250,  # upper_leg_com_length
-            0.500,  # upper_leg_mass [kg]
-            0.03125,  # upper_leg_inertia [kg*m^2]
-            0.250,  # torso_com_length [m]
-            0.500,  # torso_mass [kg]
-            0.03125,  # torso_inertia [kg*m^2]
+        self.numerical_constants = array([0.500,  # link1_length [m]
+            0.250,  # link1_com_length [m]
+            0.500,  # link1_mass [kg]
+            0.03125,  # link1_inertia [kg*m^2]
+            0.500,  # link2_length [m]
+            0.250,  # link2_com_length
+            0.500,  # link2_mass [kg]
+            0.03125,  # link2_inertia [kg*m^2]
+            0.250,  # link3_com_length [m]
+            0.500,  # link3_mass [kg]
+            0.03125,  # link3_inertia [kg*m^2]
             9.81])  # acceleration due to gravity [m/s^2]
 
     def seed(self, seed=None):
@@ -274,14 +274,14 @@ class MultipendulumEnv(gym.Env):
     def render(self, mode='human'):
         if not self.ax:
             fig, ax = plt.subplots()
-            ax.set_xlim([-5, 5])
-            ax.set_ylim([-5, 5])
+            ax.set_xlim([-3.5, 3.5])
+            ax.set_ylim([-3.5, 3.5])
             ax.set_aspect('equal')
             self.ax = ax
         else:
             self.ax.clear()
-            self.ax.set_xlim([-5, 5])
-            self.ax.set_ylim([-5, 5])
+            self.ax.set_xlim([-3.5, 3.5])
+            self.ax.set_ylim([-3.5, 3.5])
             self.ax.set_aspect('equal')
         x0 = 0.
         y0 = 0.
