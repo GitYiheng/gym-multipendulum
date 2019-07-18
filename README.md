@@ -2,7 +2,7 @@
 
 It works for Ubuntu 16.04. But I have not tested it with Windows or Mac.
 
-Issue or contact me if you find any problem: gityiheng@gmail.com or yiheng.zhu@bristol.ac.uk
+Issue or contact me if you find any problem: gityiheng@gmail.com
 
 ### Prerequisite
 
